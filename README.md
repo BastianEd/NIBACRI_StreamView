@@ -18,8 +18,6 @@ ep3_streamview/
 │   └── 02_eda_gerencia_marketing_Listo.ipynb
 ├── src/
 │   ├── etl_marketing.py     ETL: genera las tablas derivadas del dashboard
-│   ├── build_resumen_ejecutivo.py  Genera docs/Resumen_Ejecutivo.pdf e images/resumen/
-│   └── build_figuras_informe.py    Regenera las figuras del informe (images/informe/)
 ├── dashboard/
 │   ├── app.py               Dashboard (ejecución recomendada)
 │   └── dashboard_Final.ipynb  Versión notebook (ETL + dashboard)
