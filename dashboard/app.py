@@ -90,6 +90,7 @@ cat_genero = pd.read_csv(BASE / 'catalogo_por_genero.csv', low_memory=False)
 cat_score['uid'] = cat_score['type'] + '_' + cat_score['show_id'].astype(str)
 cat_pais['uid'] = cat_pais['type'] + '_' + cat_pais['show_id'].astype(str)
 oportunidades['uid'] = 'Movie_' + oportunidades['show_id'].astype(str)
+oportunidades_tab['uid'] = 'Movie_' + oportunidades_tab['show_id'].astype(str)
 cat_score['cuadrante_corto'] = cat_score['cuadrante_campania'].str.split(':').str[0]
 
 FAMILIAS_NO_PROMOCIONABLES = ['Unknown', 'Noticias']
@@ -401,7 +402,7 @@ def update_kpis(tipo, idioma, familia):
     df = aplicar_filtros(cat_score, tipo, idioma, familia)
     n = len(df)
     n_prom = int((df['cuadrante_campania'] == CUADRANTE_PROMOCIONAR).sum())
-    joyas = int(((oportunidades['oportunidad_comercial'] == JOYA_OCULTA) & oportunidades['uid'].isin(df['uid'])).sum())
+    joyas = int(((oportunidades_tab['oportunidad_comercial'] == JOYA_OCULTA) & oportunidades_tab['uid'].isin(df['uid'])).sum())
     nd = '—'
     tarjetas = [
         make_kpi_card("Catálogo Evaluado", f"{n:,}", "Con votos y valoración válidos", "bi-film", "text-primary"),
