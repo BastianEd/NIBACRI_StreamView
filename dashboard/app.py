@@ -5,6 +5,10 @@ from dash import dcc, html, dash_table, Input, Output, State
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
+
+# Texto más grande y legible en todos los gráficos
+pio.templates['plotly_white'].layout.font.size = 15
 
 """
 StreamView Analytics - Dashboard estratégico (Gerencia de Marketing).
@@ -130,16 +134,21 @@ def figura_vacia(titulo):
 # 2. INICIALIZACIÓN E INTERFAZ
 # -----------------------------------------------------------------------------
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY, dbc.icons.BOOTSTRAP])
+app.index_string = app.index_string.replace(
+    '</head>',
+    '<style>body{font-size:16px} .fs-7{font-size:1rem!important} .fs-8{font-size:.95rem!important} '
+    'small,.small{font-size:.95rem!important} .Select-value-label,.Select-option{font-size:15px!important}</style></head>')
 
 header = dbc.Navbar(
     dbc.Container([
         dbc.Row([
-            dbc.Col(html.I(className="bi bi-play-btn-fill text-danger fs-2 me-2")),
+            dbc.Col(html.I(className="bi bi-play-btn-fill text-danger fs-1"), width="auto"),
             dbc.Col(html.Div([
-                html.H3("StreamView Analytics", className="mb-0 text-white fw-bold"),
-                html.Small("Dashboard Estratégico — Gerencia de Marketing", className="text-light opacity-75")
-            ]))
-        ], align="center", className="g-0")
+                html.H2("StreamView Analytics", className="mb-0 text-white fw-bold", style={'whiteSpace': 'nowrap'}),
+                html.Div("Dashboard Estratégico — Gerencia de Marketing", className="text-light fs-5", style={'whiteSpace': 'nowrap'}),
+            ], className="text-center")),
+            dbc.Col(html.I(className="bi bi-play-btn-fill fs-1", style={'visibility': 'hidden'}), width="auto"),  # equilibra el ícono para centrar el texto
+        ], align="center", className="g-0 w-100 flex-nowrap")
     ], fluid=True),
     color=OSCURO, dark=True, className="mb-4 shadow-sm py-2"
 )
@@ -160,21 +169,23 @@ kpis = dbc.Row(id='kpi-row', className="mb-4 g-3")
 filtros_globales = dbc.Card(dbc.CardBody([
     dbc.Row([
         dbc.Col([html.Label("Tipo de contenido", className="fw-semibold fs-7 mb-1"),
-                 dcc.Dropdown(id='filter-tipo', options=[{'label': 'Todos', 'value': 'TODOS'}] + [{'label': i, 'value': i} for i in sorted(cat_score['tipo_es'].dropna().unique())], value='TODOS', clearable=False)], width=12, md=3),
+                 dcc.Dropdown(id='filter-tipo', options=[{'label': 'Todos', 'value': 'TODOS'}] + [{'label': i, 'value': i} for i in sorted(cat_score['tipo_es'].dropna().unique())], value='TODOS', clearable=False)], width=12, md=5),
         dbc.Col([html.Label("Idioma original", className="fw-semibold fs-7 mb-1"),
-                 dcc.Dropdown(id='filter-idioma', options=[{'label': 'Todos', 'value': 'TODOS'}] + [{'label': i, 'value': i} for i in idiomas_disp], value='TODOS', clearable=False)], width=12, md=3),
-        dbc.Col([html.Label("Familia de género", className="fw-semibold fs-7 mb-1"),
-                 dcc.Dropdown(id='filter-familia', options=[{'label': 'Todas', 'value': 'TODOS'}] + [{'label': i, 'value': i} for i in familias_disp], value='TODOS', clearable=False)], width=12, md=4),
-        dbc.Col(dbc.Button("↺ Restablecer filtros", id='btn-reset', color='secondary', outline=True, className="w-100"),
+                 dcc.Dropdown(id='filter-idioma', options=[{'label': 'Todos', 'value': 'TODOS'}] + [{'label': i, 'value': i} for i in idiomas_disp], value='TODOS', clearable=False)], width=12, md=5),
+        dbc.Col(dbc.Button("↺ Restablecer", id='btn-reset', color='secondary', outline=True, className="w-100"),
                 width=12, md=2, className="d-flex align-items-end"),
     ], className="g-2"),
-    html.Small("Los filtros globales actualizan los KPIs y las pestañas Matriz, Géneros y Geografía. "
-               "La pestaña Oportunidades Comerciales (solo películas) tiene sus propios filtros.",
+    dbc.Accordion(dbc.AccordionItem(
+        dbc.Row([dbc.Col([html.Label("Familia de género", className="fw-semibold fs-7 mb-1"),
+                          dcc.Dropdown(id='filter-familia', options=[{'label': 'Todas', 'value': 'TODOS'}] + [{'label': i, 'value': i} for i in familias_disp], value='TODOS', clearable=False)], width=12, md=6)]),
+        title="Más filtros"), start_collapsed=True, flush=True, className="mt-2"),
+    html.Small("Los filtros actualizan los indicadores y las pestañas Qué promocionar, Géneros y Geografía. "
+               "Oportunidades Comerciales (solo películas) tiene sus propios filtros.",
                className="text-muted d-block mt-2"),
 ]), className="border-0 shadow-sm rounded-3 mb-3")
 
 tab_matriz = dbc.Card(dbc.CardBody([
-    html.H5("Matriz de Posicionamiento de Contenidos", className="fw-bold mb-1"),
+    html.H5("¿Qué promocionar? Matriz de contenidos", className="fw-bold mb-1"),
     html.P("Filtra y explora los cuadrantes para extraer títulos de pauta publicitaria.", className="text-muted mb-3 fs-7"),
     dbc.Row([
         dbc.Col([html.Label("Filtrar por Cuadrante:", className="fw-semibold fs-7 mb-1"),
@@ -182,12 +193,12 @@ tab_matriz = dbc.Card(dbc.CardBody([
         dbc.Col([html.Label("Búsqueda por Título:", className="fw-semibold fs-7 mb-1"),
                  dbc.Input(id='search-title', placeholder="Ej: Stranger Things...", type="text")], width=12, md=6),
     ], className="mb-4 g-2 bg-light p-3 rounded-3"),
-    dbc.Row([
-        dbc.Col([html.Label("Muestra de Datos (%):", className="fw-semibold fs-7 mb-1"),
-                 dcc.Slider(id='sample-slider', min=10, max=100, step=None,
-                            marks={10: '10%', 25: '25%', 50: '50%', 75: '75%', 100: '100%'},
-                            value=100)], width=12)
-    ], className="mb-2 bg-light p-2 rounded-3"),
+    dbc.Accordion(dbc.AccordionItem(
+        dbc.Row([dbc.Col([html.Label("Muestra de datos (%): solo aligera el gráfico", className="fw-semibold fs-7 mb-1"),
+                          dcc.Slider(id='sample-slider', min=10, max=100, step=None,
+                                     marks={10: '10%', 25: '25%', 50: '50%', 75: '75%', 100: '100%'},
+                                     value=100)], width=12)]),
+        title="Opciones avanzadas"), start_collapsed=True, flush=True, className="mb-2"),
     html.Div(id='matrix-points-count', className="text-primary fs-8 mb-3 fw-bold text-end"),
     dcc.Graph(id='scatter-matriz-campania', style={'height': '550px'}),
     html.Hr(className="my-4"),
@@ -210,7 +221,7 @@ tab_matriz = dbc.Card(dbc.CardBody([
         data=[],
         page_size=10, sort_action='native', filter_action='native',
         style_table={'overflowX': 'auto'}, style_header={'backgroundColor': OSCURO, 'color': 'white', 'fontWeight': 'bold'},
-        style_cell={'textAlign': 'left', 'padding': '10px', 'fontSize': '12px', 'maxWidth': '260px', 'overflow': 'hidden', 'textOverflow': 'ellipsis'},
+        style_cell={'textAlign': 'left', 'padding': '10px', 'fontSize': '15px', 'maxWidth': '260px', 'overflow': 'hidden', 'textOverflow': 'ellipsis'},
         style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': GRIS_CLARO}]
     )
 ]), className="border-0 shadow-sm rounded-3 mb-4")
@@ -291,7 +302,7 @@ tab_comercial = dbc.Card(dbc.CardBody([
         data=oportunidades_tab.nlargest(10, 'roi').to_dict('records'),
         page_size=10, sort_action='native',
         style_table={'overflowX': 'auto'}, style_header={'backgroundColor': OSCURO, 'color': 'white', 'fontWeight': 'bold'},
-        style_cell={'textAlign': 'left', 'padding': '10px', 'fontSize': '12px'},
+        style_cell={'textAlign': 'left', 'padding': '10px', 'fontSize': '15px'},
         style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': GRIS_CLARO}]
     )
 ]), className="border-0 shadow-sm rounded-3 mb-4")
@@ -345,11 +356,11 @@ app.layout = html.Div([
         filtros_globales,
         kpis,
         dbc.Tabs([
-            dbc.Tab(tab_matriz, label="🎯 Matriz & Títulos", tab_id="tab-matriz"),
+            dbc.Tab(tab_matriz, label="🎯 Qué promocionar", tab_id="tab-matriz"),
+            dbc.Tab(tab_hallazgos, label="📌 Hallazgos y recomendaciones", tab_id="tab-hallazgos"),
             dbc.Tab(tab_familias, label="📊 Géneros", tab_id="tab-familias"),
             dbc.Tab(tab_geografia, label="🌍 Geografía y Tiempos", tab_id="tab-geo"),
-            dbc.Tab(tab_comercial, label="💰 Oportunidades Comerciales", tab_id="tab-comercial"),
-            dbc.Tab(tab_hallazgos, label="📌 Hallazgos", tab_id="tab-hallazgos"),
+            dbc.Tab(tab_comercial, label="💰 Oportunidades", tab_id="tab-comercial"),
         ], active_tab="tab-matriz"),
         dcc.Download(id='download-candidatos'),
         html.Footer(html.P("StreamView Analytics © 2026 — Gerencia de Marketing.", className="text-center text-muted fs-8 my-4"))
@@ -396,11 +407,9 @@ def update_kpis(tipo, idioma, familia):
         make_kpi_card("Catálogo Evaluado", f"{n:,}", "Con votos y valoración válidos", "bi-film", "text-primary"),
         make_kpi_card("Candidatos Promoción", f"{n_prom:,}", f"{n_prom / n:.0%} del catálogo filtrado" if n else "Alto alcance y alta valoración", "bi-megaphone-fill", "text-danger"),
         make_kpi_card("Score Promedio", f"{df['score_campania'].mean():.2f}" if n else nd, "Escala estandarizada (0-1)", "bi-star-fill", "text-warning"),
-        make_kpi_card("Calificación Prom.", f"{df['vote_average'].mean():.2f}" if n else nd, "Escala 0-10 (TMDB)", "bi-hand-thumbs-up-fill", "text-success"),
-        make_kpi_card("Popularidad Mediana", f"{df['popularity'].median():.1f}" if n else nd, f"Catálogo total: {UMBRAL_POP:.1f}", "bi-graph-up", "text-info"),
         make_kpi_card("Joyas Ocultas", f"{joyas:,}", "Alta rentabilidad, poca exposición", "bi-gem", "text-purple"),
     ]
-    return [dbc.Col(t, width=12, md=4, lg=2) for t in tarjetas]
+    return [dbc.Col(t, width=12, md=6, lg=3) for t in tarjetas]
 
 
 @app.callback(
