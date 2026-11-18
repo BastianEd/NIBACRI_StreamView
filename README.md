@@ -9,7 +9,7 @@
 > El dashboard está alojado en el plan gratuito de Render: si lleva un rato sin uso, la primera carga puede tardar cerca de un minuto en "despertar".
 
 ## Descripción
-Solución de visualización de datos para la Gerencia de Marketing de StreamView Analytics: priorización de contenidos para campañas, segmentación por cuadrantes (popularidad vs. valoración), análisis por género, país e idioma, y oportunidades comerciales (ROI). Incluye EDA, dashboard interactivo (Dash/Plotly) publicado en la web, informe ejecutivo y resumen ejecutivo.
+Solución de visualización de datos para la Gerencia de Marketing de StreamView Analytics: priorización de contenidos para campañas, segmentación por cuadrantes (popularidad vs. valoración), análisis por género, país e idioma, y oportunidades comerciales (ROI). Incluye EDA, dashboard interactivo (Dash/Plotly) publicado en la web, informe ejecutivo, resumen ejecutivo e infografía de decisiones para Marketing.
 
 ## Estructura
 ```
@@ -26,7 +26,7 @@ NIBACRI_StreamView/
 ├── dashboard/
 │   ├── app.py               Dashboard (Dash/Plotly)
 ├── images/                  Figuras exportadas por el EDA (images/marketing/)
-└── docs/                    Informe ejecutivo (PDF) y resumen ejecutivo
+└── docs/                    Informe ejecutivo (PDF) y (WORD), resumen ejecutivo (PDF) e infografía de decisiones (PDF)
 ```
 
 ## Instalación
