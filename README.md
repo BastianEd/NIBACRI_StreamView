@@ -1,16 +1,21 @@
-# StreamView Analytics — Proyecto EP3 (Gerencia de Marketing)
+# StreamView Analytics — (Gerencia de Marketing)
 
 **Asignatura:** ADY1104 – Visualización de Datos · **Docente:** Jorge Alberto Castro Silvestre
 **Equipo:** Nicolas Fonseca · Cristobal Segovia · Bastian Rubio
 
+🔗 **Dashboard en línea:** https://nibacri-streamview.onrender.com/
+📦 **Repositorio:** https://github.com/BastianEd/NIBACRI_StreamView
+
+> El dashboard está alojado en el plan gratuito de Render: si lleva un rato sin uso, la primera carga puede tardar cerca de un minuto en "despertar".
+
 ## Descripción
-Solución de visualización de datos para la Gerencia de Marketing de StreamView Analytics: priorización de contenidos para campañas, segmentación por cuadrantes (popularidad vs. valoración), análisis por género, país e idioma, y oportunidades comerciales (ROI). Incluye EDA, dashboard interactivo (Dash/Plotly), informe ejecutivo y resumen ejecutivo.
+Solución de visualización de datos para la Gerencia de Marketing de StreamView Analytics: priorización de contenidos para campañas, segmentación por cuadrantes (popularidad vs. valoración), análisis por género, país e idioma, y oportunidades comerciales (ROI). Incluye EDA, dashboard interactivo (Dash/Plotly) publicado en la web, informe ejecutivo y resumen ejecutivo.
 
 ## Estructura
 ```
-ep3_streamview/
+NIBACRI_StreamView/
 ├── README.md
-├── requirements.txt
+├── requirements.txt         Dependencias (también las usa Render al desplegar)
 ├── data/
 │   ├── raw/                 CSV originales (películas y series)
 │   └── processed/           CSV generados por el EDA y el ETL
@@ -19,7 +24,7 @@ ep3_streamview/
 ├── src/
 │   ├── etl_marketing.py     ETL: genera las tablas derivadas del dashboard
 ├── dashboard/
-│   ├── app.py               Dashboard
+│   ├── app.py               Dashboard (Dash/Plotly)
 ├── images/                  Figuras exportadas por el EDA (images/marketing/)
 └── docs/                    Informe ejecutivo (PDF) y resumen ejecutivo
 ```
@@ -32,9 +37,22 @@ pip install -r requirements.txt
 ## Orden de ejecución
 1. **EDA:** abrir `notebooks/02_eda_gerencia_marketing_Listo.ipynb` y ejecutar todo. Lee `data/raw/` y exporta a `data/processed/` y `images/marketing/`.
 2. **ETL (obligatorio tras el EDA):** `python src/etl_marketing.py` genera las tablas del dashboard a partir de `data/processed/catalogo_marketing_limpio.csv`. Las tablas ya vienen generadas en el proyecto; el EDA guarda sus copias de referencia en `data/processed/eda/` y no las pisa.
-3. **Dashboard:** `python dashboard/app.py` y abrir http://127.0.0.1:8050
+3. **Dashboard (local):** `python dashboard/app.py` y abrir http://127.0.0.1:8050
 
 Todas las rutas son relativas; el proyecto funciona sin modificaciones desde cualquier ubicación.
+
+## Dashboard en línea (Render)
+El dashboard se despliega como *Web Service* en [Render](https://render.com) a partir de este repositorio, con la siguiente configuración:
+
+| Campo | Valor |
+|---|---|
+| Build command | `pip install -r requirements.txt` |
+| Start command | `gunicorn --chdir dashboard app:server` |
+| Plan | Free |
+
+- `dashboard/app.py` expone `server = app.server`, que es lo que usa gunicorn.
+- Los CSV de `data/processed/` deben estar versionados en el repositorio, porque el dashboard los lee al iniciar.
+- Cada `git push` a la rama principal redespliega la aplicación automáticamente (si el auto-deploy está activo en Render).
 
 ## Datos
 | Archivo | Descripción |
