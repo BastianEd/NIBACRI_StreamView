@@ -714,13 +714,13 @@ def make_kpi_card(title, value, subtitle, icon, color=AZUL):
     ), className="shadow-sm border-0 h-100 kpi-card", style={'--c': color, '--bg': _tinte(color)})
 
 
-# Definición de los 5 botones de la barra lateral
+# Definición de los 5 botones de la barra lateral (Nuevo orden solicitado)
 NAV_ITEMS = [
-    ('matriz', 'Qué promocionar', 'fa-bullseye'),
-    ('hallazgos', 'Hallazgos y recomendaciones', 'fa-lightbulb'),
     ('familias', 'Géneros', 'fa-chart-column'),
     ('geo', 'Geografía', 'fa-earth-americas'),
     ('comercial', 'Oportunidades', 'fa-coins'),
+    ('matriz', 'Qué promocionar', 'fa-bullseye'),
+    ('hallazgos', 'Hallazgos y recomendaciones', 'fa-lightbulb'),
 ]
 
 sidebar = html.Aside([
@@ -794,7 +794,166 @@ kpis = dbc.Row(id='kpi-row', className="g-2 flex-shrink-0")
 # VISTAS HORIZONTALES POR CADA BOTÓN DE LA BARRA LATERAL
 # -----------------------------------------------------------------------------
 
-# 1. VISTA: QUÉ PROMOCIONAR (Izquierda: Matriz Scatter | Derecha: Tabla Candidatos)
+# 1. VISTA: GÉNEROS (Izquierda: Volumen por Familia | Derecha: Desempeño Alcance vs Calidad)
+view_familias = html.Div([
+    html.Div([
+        html.H5([html.I(className="fa-solid fa-chart-column me-2"), "Rendimiento Estratégico por Familias de Géneros"],
+                className="fw-bold mb-0 section-title"),
+        html.Small("Comparativa horizontal: inventario disponible a la izquierda vs. desempeño real de audiencia (alcance y valoración) a la derecha.",
+                   className="text-muted")
+    ], className="view-header-card"),
+
+    dbc.Row([
+        dbc.Col(html.Div([
+            html.Div([
+                html.Span([html.I(className="fa-solid fa-layer-group me-2 text-primary"), "1. Disponibilidad de Inventario por Familia"],
+                          className="panel-box-title"),
+                html.Span("Volumen de Títulos", className="badge bg-light text-secondary border")
+            ], className="panel-box-header"),
+            html.Div(
+                dcc.Graph(id='bar-volumen-familias', config={'displaylogo': False, 'responsive': True},
+                          style={'height': '100%', 'width': '100%', 'minHeight': '360px'}),
+                className="panel-box-body"
+            )
+        ], className="panel-box"), width=12, lg=6, className="h-100"),
+
+        dbc.Col(html.Div([
+            html.Div([
+                html.Span([html.I(className="fa-solid fa-chart-line me-2 text-danger"), "2. Alcance vs. Calidad Percibida por Familia"],
+                          className="panel-box-title"),
+                html.Span("Tamaño = Volumen", className="badge bg-light text-secondary border")
+            ], className="panel-box-header"),
+            html.Div(
+                dcc.Graph(id='scatter-rendimiento-familias', config={'displaylogo': False, 'responsive': True},
+                          style={'height': '100%', 'width': '100%', 'minHeight': '360px'}),
+                className="panel-box-body"
+            )
+        ], className="panel-box"), width=12, lg=6, className="h-100"),
+    ], className="g-3 horizontal-content-row")
+], id="view-familias", className="view-panel active")
+
+
+# 2. VISTA: GEOGRAFÍA (Panel unificado con interruptor Países/Idiomas)
+view_geografia = html.Div([
+    html.Div([
+        html.H5([html.I(className="fa-solid fa-earth-americas me-2"), "Geografía"],
+                className="fw-bold mb-0 section-title"),
+        html.Small("Segmentación de la producción por países de origen e idiomas originales.",
+                   className="text-muted")
+    ], className="view-header-card"),
+
+    dbc.Row([
+        dbc.Col(html.Div([
+            html.Div([
+                html.Span([html.I(className="fa-solid fa-map-location-dot me-2 text-success"), "Top Países / Top Idiomas"],
+                          className="panel-box-title"),
+                dbc.RadioItems(
+                    id='selector-geo-idioma',
+                    options=[
+                        {'label': 'Países', 'value': 'PAIS'},
+                        {'label': 'Idiomas', 'value': 'IDIOMA'},
+                    ],
+                    value='PAIS',
+                    inline=True,
+                    className="fw-bold"
+                )
+            ], className="panel-box-header"),
+            html.Div([
+                html.Small(id='sub-geo-idioma', className="text-muted d-block mb-2", style={'fontSize': '0.9rem'}),
+                dcc.Graph(id='bar-geo-idioma', config={'displaylogo': False, 'responsive': True},
+                          style={'height': '100%', 'width': '100%', 'minHeight': '360px'})
+            ], className="panel-box-body")
+        ], className="panel-box"), width=12, lg=8, className="mx-auto h-100"),
+    ], className="g-3 horizontal-content-row")
+], id="view-geo", className="view-panel d-none")
+
+
+# 3. VISTA: OPORTUNIDADES COMERCIALES
+view_comercial = html.Div([
+    html.Div(
+        dbc.Row([
+            dbc.Col([
+                html.H5([html.I(className="fa-solid fa-coins me-2"), "Oportunidades Comerciales (Películas con Datos Financieros)"],
+                        className="fw-bold mb-0 section-title"),
+                html.Small(f"Películas con presupuesto ≥ USD 100k ({len(oportunidades_tab):,} analizadas · ROI mediano {oportunidades_tab['roi'].median():.1f}x · {(oportunidades_tab['oportunidad_comercial'] == JOYA_OCULTA).sum():,} Joyas Ocultas).",
+                           className="text-muted")
+            ], width=12, lg=6),
+            dbc.Col([
+                dbc.Row([
+                    dbc.Col([
+                        html.Label("Buscar película:", className="fw-semibold fs-8 mb-0"),
+                        dbc.Input(id='search-title-comercial', placeholder="Ej: Interstellar...", type="text", size="sm")
+                    ], width=12, md=6),
+                    dbc.Col([
+                        html.Label("Temporada de incorporación:", className="fw-semibold fs-8 mb-0"),
+                        dcc.Dropdown(
+                            id='filter-temporada',
+                            options=[{'label': 'Todas las temporadas', 'value': 'TODAS'}] +
+                                    [{'label': t, 'value': t} for t in ['Verano', 'Otoño', 'Invierno', 'Primavera']],
+                            value='TODAS', clearable=False
+                        )
+                    ], width=12, md=6),
+                ], className="g-2 align-items-center")
+            ], width=12, lg=6),
+        ], className="g-2 align-items-center"),
+        className="view-header-card"
+    ),
+
+    dbc.Row([
+        # Columna Izquierda: Dispersión Presupuesto vs Recaudación
+        dbc.Col(html.Div([
+            html.Div([
+                html.Span([html.I(className="fa-solid fa-sack-dollar me-2 text-success"), "Presupuesto vs. Recaudación (Tamaño = Popularidad)"],
+                          className="panel-box-title"),
+                html.Span(id='comercial-points-count', className="badge bg-light text-primary border fw-semibold")
+            ], className="panel-box-header"),
+            html.Div(
+                dcc.Graph(id='scatter-oportunidad-comercial', config={'displaylogo': False, 'responsive': True},
+                          style={'height': '100%', 'width': '100%', 'minHeight': '340px'}),
+                className="panel-box-body"
+            )
+        ], className="panel-box"), width=12, lg=6, className="h-100"),
+
+        # Columna Derecha: Tabla Top 10 Películas por ROI
+        dbc.Col(html.Div([
+            html.Div([
+                html.Span([html.I(className="fa-solid fa-trophy me-2 text-warning"), "Top 10 Películas por Retorno sobre Presupuesto (ROI)"],
+                          className="panel-box-title"),
+                html.Span("Presupuesto ≥ USD 100k", className="badge bg-light text-secondary border")
+            ], className="panel-box-header"),
+            html.Div(
+                dash_table.DataTable(
+                    id='tabla-top-roi',
+                    columns=[
+                        {"name": "Título", "id": "title"},
+                        {"name": "Temp.", "id": "temporada"},
+                        {"name": "Presupuesto", "id": "budget", "type": "numeric",
+                         "format": dash_table.Format.Format(group=',')},
+                        {"name": "Recaudación", "id": "revenue", "type": "numeric",
+                         "format": dash_table.Format.Format(group=',')},
+                        {"name": "ROI (x)", "id": "roi", "type": "numeric",
+                         "format": dash_table.Format.Format(precision=2, scheme=dash_table.Format.Scheme.fixed)},
+                        {"name": "Pop.", "id": "popularity", "type": "numeric",
+                         "format": dash_table.Format.Format(precision=1, scheme=dash_table.Format.Scheme.fixed)},
+                        {"name": "Clasificación", "id": "oportunidad_comercial"},
+                    ],
+                    data=oportunidades_tab.nlargest(10, 'roi').to_dict('records'),
+                    page_size=10,
+                    sort_action='native',
+                    style_table={'overflowX': 'auto', 'overflowY': 'auto'},
+                    style_header={'backgroundColor': OSCURO, 'color': 'white', 'fontWeight': 'bold', 'fontSize': '12px', 'padding': '7px'},
+                    style_cell={'textAlign': 'left', 'padding': '6px 8px', 'fontSize': '12.5px',
+                                'maxWidth': '175px', 'overflow': 'hidden', 'textOverflow': 'ellipsis'},
+                    style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': GRIS_CLARO}]
+                ),
+                className="panel-box-body"
+            )
+        ], className="panel-box"), width=12, lg=6, className="h-100"),
+    ], className="g-3 horizontal-content-row")
+], id="view-comercial", className="view-panel d-none")
+
+
+# 4. VISTA: QUÉ PROMOCIONAR (Izquierda: Matriz Scatter | Derecha: Tabla Candidatos)
 view_matriz = html.Div([
     html.Div(
         dbc.Row([
@@ -891,10 +1050,10 @@ view_matriz = html.Div([
             )
         ], className="panel-box"), width=12, lg=6, className="h-100"),
     ], className="g-3 horizontal-content-row")
-], id="view-matriz", className="view-panel active")
+], id="view-matriz", className="view-panel d-none")
 
 
-# 2. VISTA: HALLAZGOS Y RECOMENDACIONES (Izquierda: Cuadrícula 2x2 Hallazgos | Derecha: Recomendaciones 2x3)
+# 5. VISTA: HALLAZGOS Y RECOMENDACIONES (Izquierda: Cuadrícula 2x2 Hallazgos | Derecha: Recomendaciones 2x3)
 def hallazgo_card(etiqueta, numero, titulo, detalle, color, icono="fa-circle-info"):
     """Tarjeta de hallazgo: [icono + etiqueta] / cifra destacada / título / detalle."""
     valor_largo = len(str(numero)) > 8
@@ -991,179 +1150,20 @@ view_hallazgos = html.Div([
 ], id="view-hallazgos", className="view-panel d-none")
 
 
-# 3. VISTA: GÉNEROS (Izquierda: Volumen por Familia | Derecha: Desempeño Alcance vs Calidad)
-view_familias = html.Div([
-    html.Div([
-        html.H5([html.I(className="fa-solid fa-chart-column me-2"), "Rendimiento Estratégico por Familias de Géneros"],
-                className="fw-bold mb-0 section-title"),
-        html.Small("Comparativa horizontal: inventario disponible a la izquierda vs. desempeño real de audiencia (alcance y valoración) a la derecha.",
-                   className="text-muted")
-    ], className="view-header-card"),
-
-    dbc.Row([
-        dbc.Col(html.Div([
-            html.Div([
-                html.Span([html.I(className="fa-solid fa-layer-group me-2 text-primary"), "1. Disponibilidad de Inventario por Familia"],
-                          className="panel-box-title"),
-                html.Span("Volumen de Títulos", className="badge bg-light text-secondary border")
-            ], className="panel-box-header"),
-            html.Div(
-                dcc.Graph(id='bar-volumen-familias', config={'displaylogo': False, 'responsive': True},
-                          style={'height': '100%', 'width': '100%', 'minHeight': '360px'}),
-                className="panel-box-body"
-            )
-        ], className="panel-box"), width=12, lg=6, className="h-100"),
-
-        dbc.Col(html.Div([
-            html.Div([
-                html.Span([html.I(className="fa-solid fa-chart-line me-2 text-danger"), "2. Alcance vs. Calidad Percibida por Familia"],
-                          className="panel-box-title"),
-                html.Span("Tamaño = Volumen", className="badge bg-light text-secondary border")
-            ], className="panel-box-header"),
-            html.Div(
-                dcc.Graph(id='scatter-rendimiento-familias', config={'displaylogo': False, 'responsive': True},
-                          style={'height': '100%', 'width': '100%', 'minHeight': '360px'}),
-                className="panel-box-body"
-            )
-        ], className="panel-box"), width=12, lg=6, className="h-100"),
-    ], className="g-3 horizontal-content-row")
-], id="view-familias", className="view-panel d-none")
-
-
-# 4. VISTA: GEOGRAFÍA (Panel unificado con interruptor Países/Idiomas)
-view_geografia = html.Div([
-    html.Div([
-        html.H5([html.I(className="fa-solid fa-earth-americas me-2"), "Geografía"],
-                className="fw-bold mb-0 section-title"),
-        html.Small("Segmentación de la producción por países de origen e idiomas originales.",
-                   className="text-muted")
-    ], className="view-header-card"),
-
-    dbc.Row([
-        dbc.Col(html.Div([
-            html.Div([
-                html.Span([html.I(className="fa-solid fa-map-location-dot me-2 text-success"), "Top Países / Top Idiomas"],
-                          className="panel-box-title"),
-                dbc.RadioItems(
-                    id='selector-geo-idioma',
-                    options=[
-                        {'label': 'Países', 'value': 'PAIS'},
-                        {'label': 'Idiomas', 'value': 'IDIOMA'},
-                    ],
-                    value='PAIS',
-                    inline=True,
-                    className="fw-bold"
-                )
-            ], className="panel-box-header"),
-            html.Div([
-                html.Small(id='sub-geo-idioma', className="text-muted d-block mb-2", style={'fontSize': '0.9rem'}),
-                dcc.Graph(id='bar-geo-idioma', config={'displaylogo': False, 'responsive': True},
-                          style={'height': '100%', 'width': '100%', 'minHeight': '360px'})
-            ], className="panel-box-body")
-        ], className="panel-box"), width=12, lg=8, className="mx-auto h-100"),
-    ], className="g-3 horizontal-content-row")
-], id="view-geo", className="view-panel d-none")
-
-
-# 5. VISTA: OPORTUNIDADES COMERCIALES
-view_comercial = html.Div([
-    html.Div(
-        dbc.Row([
-            dbc.Col([
-                html.H5([html.I(className="fa-solid fa-coins me-2"), "Oportunidades Comerciales (Películas con Datos Financieros)"],
-                        className="fw-bold mb-0 section-title"),
-                html.Small(f"Películas con presupuesto ≥ USD 100k ({len(oportunidades_tab):,} analizadas · ROI mediano {oportunidades_tab['roi'].median():.1f}x · {(oportunidades_tab['oportunidad_comercial'] == JOYA_OCULTA).sum():,} Joyas Ocultas).",
-                           className="text-muted")
-            ], width=12, lg=6),
-            dbc.Col([
-                dbc.Row([
-                    dbc.Col([
-                        html.Label("Buscar película:", className="fw-semibold fs-8 mb-0"),
-                        dbc.Input(id='search-title-comercial', placeholder="Ej: Interstellar...", type="text", size="sm")
-                    ], width=12, md=6),
-                    dbc.Col([
-                        html.Label("Temporada de incorporación:", className="fw-semibold fs-8 mb-0"),
-                        dcc.Dropdown(
-                            id='filter-temporada',
-                            options=[{'label': 'Todas las temporadas', 'value': 'TODAS'}] +
-                                    [{'label': t, 'value': t} for t in ['Verano', 'Otoño', 'Invierno', 'Primavera']],
-                            value='TODAS', clearable=False
-                        )
-                    ], width=12, md=6),
-                ], className="g-2 align-items-center")
-            ], width=12, lg=6),
-        ], className="g-2 align-items-center"),
-        className="view-header-card"
-    ),
-
-    dbc.Row([
-        # Columna Izquierda: Dispersión Presupuesto vs Recaudación
-        dbc.Col(html.Div([
-            html.Div([
-                html.Span([html.I(className="fa-solid fa-sack-dollar me-2 text-success"), "Presupuesto vs. Recaudación (Tamaño = Popularidad)"],
-                          className="panel-box-title"),
-                html.Span(id='comercial-points-count', className="badge bg-light text-primary border fw-semibold")
-            ], className="panel-box-header"),
-            html.Div(
-                dcc.Graph(id='scatter-oportunidad-comercial', config={'displaylogo': False, 'responsive': True},
-                          style={'height': '100%', 'width': '100%', 'minHeight': '340px'}),
-                className="panel-box-body"
-            )
-        ], className="panel-box"), width=12, lg=6, className="h-100"),
-
-        # Columna Derecha: Tabla Top 10 Películas por ROI
-        dbc.Col(html.Div([
-            html.Div([
-                html.Span([html.I(className="fa-solid fa-trophy me-2 text-warning"), "Top 10 Películas por Retorno sobre Presupuesto (ROI)"],
-                          className="panel-box-title"),
-                html.Span("Presupuesto ≥ USD 100k", className="badge bg-light text-secondary border")
-            ], className="panel-box-header"),
-            html.Div(
-                dash_table.DataTable(
-                    id='tabla-top-roi',
-                    columns=[
-                        {"name": "Título", "id": "title"},
-                        {"name": "Temp.", "id": "temporada"},
-                        {"name": "Presupuesto", "id": "budget", "type": "numeric",
-                         "format": dash_table.Format.Format(group=',')},
-                        {"name": "Recaudación", "id": "revenue", "type": "numeric",
-                         "format": dash_table.Format.Format(group=',')},
-                        {"name": "ROI (x)", "id": "roi", "type": "numeric",
-                         "format": dash_table.Format.Format(precision=2, scheme=dash_table.Format.Scheme.fixed)},
-                        {"name": "Pop.", "id": "popularity", "type": "numeric",
-                         "format": dash_table.Format.Format(precision=1, scheme=dash_table.Format.Scheme.fixed)},
-                        {"name": "Clasificación", "id": "oportunidad_comercial"},
-                    ],
-                    data=oportunidades_tab.nlargest(10, 'roi').to_dict('records'),
-                    page_size=10,
-                    sort_action='native',
-                    style_table={'overflowX': 'auto', 'overflowY': 'auto'},
-                    style_header={'backgroundColor': OSCURO, 'color': 'white', 'fontWeight': 'bold', 'fontSize': '12px', 'padding': '7px'},
-                    style_cell={'textAlign': 'left', 'padding': '6px 8px', 'fontSize': '12.5px',
-                                'maxWidth': '175px', 'overflow': 'hidden', 'textOverflow': 'ellipsis'},
-                    style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': GRIS_CLARO}]
-                ),
-                className="panel-box-body"
-            )
-        ], className="panel-box"), width=12, lg=6, className="h-100"),
-    ], className="g-3 horizontal-content-row")
-], id="view-comercial", className="view-panel d-none")
-
-
 # Layout Principal (Shell Horizontal: Barra Lateral + Área Principal)
 app.layout = html.Div([
-    dcc.Store(id='active-view-store', data='matriz'),
+    dcc.Store(id='active-view-store', data='familias'),
     html.Div(id='resize-trigger', style={'display': 'none'}),
     dcc.Download(id='download-candidatos'),
     sidebar,
     html.Main([
         kpis,
         html.Div([
-            view_matriz,
-            view_hallazgos,
             view_familias,
             view_geografia,
             view_comercial,
+            view_matriz,
+            view_hallazgos,
         ], className="views-container")
     ], className="app-main")
 ], className="dashboard-shell")
@@ -1182,7 +1182,7 @@ app.layout = html.Div([
 def cambiar_vista_lateral(*_):
     ctx = dash.callback_context
     if not ctx.triggered:
-        activa = 'matriz'
+        activa = 'familias'
     else:
         boton_id = ctx.triggered[0]['prop_id'].split('.')[0]
         activa = boton_id.replace('btn-nav-', '')
