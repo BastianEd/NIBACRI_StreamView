@@ -41,6 +41,7 @@ _tpl.hoverlabel.bgcolor = OSCURO
 _tpl.hoverlabel.font.color = 'white smoke'
 _tpl.hoverlabel.font.size = 14
 _tpl.colorway = [AZUL, ROJO, VERDE, AMBAR, MORADO, '#0891B2', '#DB2777', '#65A30D', GRIS, '#EA580C']
+_tpl.separators = ',.'   # decimales con coma y miles con punto (igual que los KPIs)
 
 BASE = Path(__file__).resolve().parent.parent / 'data' / 'processed'
 _REQUERIDOS = [
@@ -56,6 +57,31 @@ cat_score = pd.read_csv(BASE / 'catalogo_marketing_score.csv', low_memory=False)
 cat_pais = pd.read_csv(BASE / 'catalogo_por_pais.csv', low_memory=False)
 oportunidades = pd.read_csv(BASE / 'oportunidades_comerciales.csv', low_memory=False)
 cat_genero = pd.read_csv(BASE / 'catalogo_por_genero.csv', low_memory=False)
+
+# --- Español consistente en las etiquetas del dashboard ---
+FAMILIAS_ES = {'War': 'Guerra', 'Western': 'Wéstern', 'Kids': 'Infantil',
+               'Reality': 'Telerrealidad', 'Soap': 'Telenovela'}
+cat_genero['familia_genero'] = cat_genero['familia_genero'].replace(FAMILIAS_ES)
+
+GENEROS_ES = {
+    'Drama': 'Drama', 'Comedy': 'Comedia', 'Animation': 'Animación', 'Thriller': 'Suspenso', 'Action': 'Acción',
+    'Crime': 'Crimen', 'Family': 'Familiar', 'Romance': 'Romance', 'Mystery': 'Misterio', 'Horror': 'Terror',
+    'Action & Adventure': 'Acción y aventura', 'Sci-Fi & Fantasy': 'Ciencia ficción y fantasía',
+    'Adventure': 'Aventura', 'Documentary': 'Documental', 'Science Fiction': 'Ciencia ficción', 'Fantasy': 'Fantasía',
+    'Reality': 'Telerrealidad', 'History': 'Historia', 'Kids': 'Infantil', 'TV Movie': 'Película para TV',
+    'Soap': 'Telenovela', 'Music': 'Música', 'Talk': 'Conversación', 'War': 'Guerra',
+    'War & Politics': 'Guerra y política', 'Western': 'Wéstern', 'Unknown': 'Desconocido', 'News': 'Noticias',
+}
+
+
+def traducir_generos(texto):
+    """Traduce una lista 'Comedy, Drama' a 'Comedia, Drama' (solo para mostrar en tablas)."""
+    if pd.isna(texto):
+        return texto
+    return ', '.join(GENEROS_ES.get(g.strip(), g.strip()) for g in str(texto).split(','))
+
+
+cat_score['genres'] = cat_score['genres'].map(traducir_generos)
 
 # UMBRAL_BUDGET_MINIMO_TAB: TMDB trae presupuestos placeholder ($1, $5, $84...)
 # que no son datos financieros reales y, con un denominador tan chico, inflan el ROI
@@ -102,6 +128,7 @@ cat_score['uid'] = cat_score['type'] + '_' + cat_score['show_id'].astype(str)
 cat_pais['uid'] = cat_pais['type'] + '_' + cat_pais['show_id'].astype(str)
 oportunidades['uid'] = 'Movie_' + oportunidades['show_id'].astype(str)
 oportunidades_tab['uid'] = 'Movie_' + oportunidades_tab['show_id'].astype(str)
+oportunidades_tab['clasificacion'] = oportunidades_tab['oportunidad_comercial'].str.split(':').str[0]
 cat_score['cuadrante_corto'] = cat_score['cuadrante_campania'].str.split(':').str[0]
 
 # Enriquecer cat_score con recaudación (revenue) y presupuesto (budget) para el filtro Top recaudación (%)
@@ -157,10 +184,27 @@ def figura_vacia(titulo, mensaje="Sin datos para la combinación de filtros sele
     return fig
 
 
+def _fmt(precision=None, agrupar=False):
+    """Formato numérico de DataTable en español: 12.345 (miles con punto) y 8,7 (decimales con coma)."""
+    F = dash_table.Format
+    kwargs = {}
+    if precision is not None:
+        kwargs.update(precision=precision, scheme=F.Scheme.fixed)
+    try:
+        if agrupar:
+            kwargs['group'] = F.Group.yes
+        return F.Format(group_delimiter='.', decimal_delimiter=',', **kwargs)
+    except Exception:   # versiones de Dash sin estos parámetros: formato por defecto
+        if agrupar:
+            kwargs['group'] = ','
+        return F.Format(**kwargs)
+
+
 # -----------------------------------------------------------------------------
 # 2. INICIALIZACIÓN E INTERFAZ (BARRA LATERAL + SENTIDO HORIZONTAL SIN SCROLL)
 # -----------------------------------------------------------------------------
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY, dbc.icons.FONT_AWESOME])
+app = dash.Dash(__name__, title="StreamView Analytics",
+                external_stylesheets=[dbc.themes.FLATLY, dbc.icons.FONT_AWESOME])
 server = app.server
 
 ESTILOS = r"""
@@ -551,7 +595,7 @@ small, .small { font-size: .80rem !important; }
     background: var(--c);
 }
 .hallazgo-etiqueta {
-    font-size: clamp(0.78rem, 1.5vh, 0.95rem);
+    font-size: clamp(0.9rem, 1.9vh, 1.2rem);
     font-weight: 700;
     letter-spacing: 0.07em;
     text-transform: uppercase;
@@ -559,21 +603,21 @@ small, .small { font-size: .80rem !important; }
 .hallazgo-valor {
     font-weight: 800;
     line-height: 1.05;
-    font-size: clamp(2.5rem, 6.4vh, 3.9rem);
+    font-size: clamp(3rem, 8vh, 5.2rem);
     margin-top: 2px;
 }
-.hallazgo-valor-largo { font-size: clamp(1.7rem, 3.9vh, 2.5rem); line-height: 1.15; }
+.hallazgo-valor-largo { font-size: clamp(2rem, 5vh, 3.3rem); line-height: 1.15; }
 .hallazgo-titulo {
     font-weight: 700;
-    font-size: clamp(1.1rem, 2.3vh, 1.4rem);
+    font-size: clamp(1.3rem, 2.9vh, 1.9rem);
     color: #111827;
     line-height: 1.2;
 }
 .hallazgo-detalle {
     margin: 0;
-    font-size: clamp(0.92rem, 1.95vh, 1.15rem);
-    line-height: 1.35;
-    color: #6B7280;
+    font-size: clamp(1.05rem, 2.35vh, 1.5rem);
+    line-height: 1.4;
+    color: #4B5563;
 }
 
 /* Tarjeta de recomendación */
@@ -624,7 +668,7 @@ small, .small { font-size: .80rem !important; }
 }
 .rec-titulo {
     font-weight: 700;
-    font-size: clamp(1.05rem, 2.2vh, 1.35rem);
+    font-size: clamp(1.2rem, 2.7vh, 1.8rem);
     color: #111827;
     line-height: 1.2;
 }
@@ -635,9 +679,9 @@ small, .small { font-size: .80rem !important; }
 }
 .rec-detalle {
     margin: 0;
-    font-size: clamp(0.9rem, 1.9vh, 1.1rem);
-    line-height: 1.35;
-    color: #6B7280;
+    font-size: clamp(1.02rem, 2.25vh, 1.45rem);
+    line-height: 1.4;
+    color: #4B5563;
 }
 .nota-metodologica {
     flex-shrink: 0;
@@ -798,6 +842,14 @@ sidebar = html.Aside([
 # Fila superior de KPIs globales
 kpis = dbc.Row(id='kpi-row', className="g-2 flex-shrink-0")
 
+# Estilo común de las tablas: tipografía del dashboard, letra más grande y alto ajustado a la pantalla
+TABLA_ALTO = 'calc(100vh - 290px)'
+FUENTE_TABLA = "Lato, 'Segoe UI', Arial, sans-serif"
+TABLA_ESTILO_HEADER = {'backgroundColor': OSCURO, 'color': 'white', 'fontWeight': 'bold', 'fontSize': '13.5px',
+                       'padding': '8px', 'fontFamily': FUENTE_TABLA}
+TABLA_ESTILO_CELDA = {'textAlign': 'left', 'padding': '7px 9px', 'fontSize': '14px', 'fontFamily': FUENTE_TABLA,
+                      'maxWidth': '170px', 'overflow': 'hidden', 'textOverflow': 'ellipsis'}
+
 # -----------------------------------------------------------------------------
 # VISTAS HORIZONTALES POR CADA BOTÓN DE LA BARRA LATERAL
 # -----------------------------------------------------------------------------
@@ -829,7 +881,7 @@ view_familias = html.Div([
             html.Div([
                 html.Span([html.I(className="fa-solid fa-chart-line me-2 text-danger"), "2. Alcance vs. Calidad Percibida por Familia"],
                           className="panel-box-title"),
-                html.Span("Tamaño = Volumen", className="badge bg-light text-secondary border")
+                html.Span("Tamaño = volumen · cursor para ver cada familia", className="badge bg-light text-secondary border")
             ], className="panel-box-header"),
             html.Div(
                 dcc.Graph(id='scatter-rendimiento-familias', config={'displaylogo': False, 'responsive': True},
@@ -871,7 +923,7 @@ view_geografia = html.Div([
                 dcc.Graph(id='bar-geo-idioma', config={'displaylogo': False, 'responsive': True},
                           style={'height': '100%', 'width': '100%', 'minHeight': '360px'})
             ], className="panel-box-body")
-        ], className="panel-box"), width=12, lg=8, className="mx-auto h-100"),
+        ], className="panel-box"), width=12, className="h-100"),
     ], className="g-3 horizontal-content-row")
 ], id="view-geo", className="view-panel d-none")
 
@@ -925,7 +977,7 @@ view_comercial = html.Div([
         # Columna Derecha: Tabla Top 10 Películas por ROI
         dbc.Col(html.Div([
             html.Div([
-                html.Span([html.I(className="fa-solid fa-trophy me-2 text-warning"), "Top 10 Películas por Retorno sobre Presupuesto (ROI)"],
+                html.Span([html.I(className="fa-solid fa-trophy me-2 text-warning"), "Top 30 Películas por Retorno sobre Presupuesto (ROI)"],
                           className="panel-box-title"),
                 html.Span("Presupuesto ≥ USD 100k", className="badge bg-light text-secondary border")
             ], className="panel-box-header"),
@@ -936,25 +988,29 @@ view_comercial = html.Div([
                         {"name": "Título", "id": "title"},
                         {"name": "Temp.", "id": "temporada"},
                         {"name": "Presupuesto", "id": "budget", "type": "numeric",
-                         "format": dash_table.Format.Format(group=',')},
+                         "format": _fmt(agrupar=True)},
                         {"name": "Recaudación", "id": "revenue", "type": "numeric",
-                         "format": dash_table.Format.Format(group=',')},
+                         "format": _fmt(agrupar=True)},
                         {"name": "ROI (x)", "id": "roi", "type": "numeric",
-                         "format": dash_table.Format.Format(precision=2, scheme=dash_table.Format.Scheme.fixed)},
+                         "format": _fmt(2)},
                         {"name": "Pop.", "id": "popularity", "type": "numeric",
-                         "format": dash_table.Format.Format(precision=1, scheme=dash_table.Format.Scheme.fixed)},
-                        {"name": "Clasificación", "id": "oportunidad_comercial"},
+                         "format": _fmt(1)},
+                        {"name": "Clasificación", "id": "clasificacion"},
                     ],
-                    data=oportunidades_tab.nlargest(10, 'roi').to_dict('records'),
-                    page_size=10,
+                    data=oportunidades_tab.nlargest(30, 'roi').to_dict('records'),
+                    page_action='none',            # sin paginación: llena el panel y hace scroll interno
+                    fixed_rows={'headers': True},
                     sort_action='native',
-                    style_table={'overflowX': 'auto', 'overflowY': 'auto'},
-                    style_header={'backgroundColor': OSCURO, 'color': 'white', 'fontWeight': 'bold', 'fontSize': '12px', 'padding': '7px'},
-                    style_cell={'textAlign': 'left', 'padding': '6px 8px', 'fontSize': '12.5px',
-                                'maxWidth': '175px', 'overflow': 'hidden', 'textOverflow': 'ellipsis'},
+                    style_table={'height': TABLA_ALTO, 'maxHeight': TABLA_ALTO, 'overflowX': 'auto', 'overflowY': 'auto'},
+                    style_header=TABLA_ESTILO_HEADER,
+                    style_cell=TABLA_ESTILO_CELDA,
+                    style_cell_conditional=[
+                        {'if': {'column_id': 'title'}, 'maxWidth': '230px'},
+                        {'if': {'column_id': 'clasificacion'}, 'maxWidth': '260px'},
+                    ],
                     style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': GRIS_CLARO}]
                 ),
-                className="panel-box-body"
+                className="panel-box-body tabla-fill"
             )
         ], className="panel-box"), width=12, lg=6, className="h-100"),
     ], className="g-3 horizontal-content-row")
@@ -968,7 +1024,7 @@ view_matriz = html.Div([
             dbc.Col([
                 html.H5([html.I(className="fa-solid fa-bullseye me-2"), "¿Qué promocionar? Matriz de Priorización y Candidatos"],
                         className="fw-bold mb-0 section-title"),
-                html.Small("Explora los cuadrantes a la izquierda y consulta o exporta la nómina priorizada a la derecha.",
+                html.Small("Matriz: títulos con recaudación (TMDB). Tabla: todos los candidatos con ≥ 100 votos.",
                            className="text-muted")
             ], width=12, lg=4),
             dbc.Col([
@@ -1035,13 +1091,13 @@ view_matriz = html.Div([
                         {"name": "Géneros", "id": "genres"},
                         {"name": "Idioma", "id": "idioma"},
                         {"name": "Pop.", "id": "popularity", "type": "numeric",
-                         "format": dash_table.Format.Format(precision=1, scheme=dash_table.Format.Scheme.fixed)},
+                         "format": _fmt(1)},
                         {"name": "Calif.", "id": "vote_average", "type": "numeric",
-                         "format": dash_table.Format.Format(precision=2, scheme=dash_table.Format.Scheme.fixed)},
+                         "format": _fmt(2)},
                         {"name": "Votos", "id": "vote_count", "type": "numeric",
-                         "format": dash_table.Format.Format(group=',')},
+                         "format": _fmt(agrupar=True)},
                         {"name": "Score", "id": "score_campania", "type": "numeric",
-                         "format": dash_table.Format.Format(precision=3, scheme=dash_table.Format.Scheme.fixed)},
+                         "format": _fmt(3)},
                         {"name": "Cuadrante", "id": "cuadrante_corto"},
                     ],
                     data=[],
@@ -1049,10 +1105,13 @@ view_matriz = html.Div([
                     fixed_rows={'headers': True},  # cabecera + filtros fijos al hacer scroll
                     sort_action='native',
                     filter_action='native',
-                    style_table={'height': 'calc(100vh - 290px)', 'maxHeight': 'calc(100vh - 290px)', 'overflowX': 'auto', 'overflowY': 'auto'},
-                    style_header={'backgroundColor': OSCURO, 'color': 'white', 'fontWeight': 'bold', 'fontSize': '12px', 'padding': '7px'},
-                    style_cell={'textAlign': 'left', 'padding': '6px 8px', 'fontSize': '12.5px',
-                                'maxWidth': '170px', 'overflow': 'hidden', 'textOverflow': 'ellipsis'},
+                    style_table={'height': TABLA_ALTO, 'maxHeight': TABLA_ALTO, 'overflowX': 'auto', 'overflowY': 'auto'},
+                    style_header=TABLA_ESTILO_HEADER,
+                    style_cell=TABLA_ESTILO_CELDA,
+                    style_cell_conditional=[
+                        {'if': {'column_id': 'title'}, 'maxWidth': '230px'},
+                        {'if': {'column_id': 'genres'}, 'maxWidth': '300px'},
+                    ],
                     style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': GRIS_CLARO}]
                 ),
                 className="panel-box-body tabla-fill"
@@ -1298,7 +1357,7 @@ def update_matriz(tipo, idioma, familia, cuadrante, search, top_recaudacion_pct)
 
     conteo_str = f"{len(df):,}".replace(',', '.')
     total_str = f"{total_con_rec:,}".replace(',', '.')
-    conteo_texto = f"Top {pct}% recaudación · {conteo_str} de {total_str} títulos"
+    conteo_texto = f"Top {pct}% recaudación · {conteo_str} de {total_str} títulos con recaudación"
 
     fig = px.scatter(
         df, x='popularity', y='vote_average', color='cuadrante_campania', hover_name='title',
@@ -1331,6 +1390,9 @@ def update_matriz(tipo, idioma, familia, cuadrante, search, top_recaudacion_pct)
         xaxis_title="Popularidad TMDB (Escala Log) ➔ MAYOR ALCANCE",
         yaxis_title="Calificación Promedio (1-10) ➔ MAYOR CALIDAD"
     )
+    # Eje logarítmico limpio: solo potencias de 10 (sin marcas sueltas "2" y "5")
+    fig.update_xaxes(tickvals=[0.1, 1, 10, 100, 1000, 10000],
+                     ticktext=['0,1', '1', '10', '100', '1.000', '10.000'])
     return fig, conteo_texto
 
 
@@ -1386,10 +1448,28 @@ def update_scatter_familias(tipo, idioma):
     rend = calcular_rendimiento_familias(df_base)
     if rend.empty:
         return figura_vacia("Desempeño Promedio de Géneros")
+    rend = rend.copy()
+    # Rótulo fijo solo en las familias más grandes (con posiciones alternadas) y en las más atípicas;
+    # el resto se lee al pasar el cursor. Así no se pisan las etiquetas del centro del gráfico.
+    dx = (rend['popularidad_mediana'] - rend['popularidad_mediana'].median()).abs() / (rend['popularidad_mediana'].std() or 1)
+    dy = (rend['calificacion_promedio'] - rend['calificacion_promedio'].median()).abs() / (rend['calificacion_promedio'].std() or 1)
+    rend['_dist'] = (dx ** 2 + dy ** 2) ** 0.5
+    atipicas = set(rend.nlargest(9, '_dist')['familia_genero'])
+    grandes = rend.nlargest(4, 'contenidos')['familia_genero'].tolist()
+    posiciones = ['top center', 'middle right', 'bottom center', 'middle left']
+    pos_grandes = {fam: posiciones[i % len(posiciones)] for i, fam in enumerate(grandes)}
+    rend['etiqueta'] = rend['familia_genero'].where(rend['familia_genero'].isin(atipicas | set(grandes)), '')
+
     fig = px.scatter(rend, x='popularidad_mediana', y='calificacion_promedio', size='contenidos',
-                     color='familia_genero', text='familia_genero')
-    fig.update_traces(textposition='top center', textfont=dict(size=11, color=OSCURO),
+                     color='familia_genero', text='etiqueta', hover_name='familia_genero',
+                     hover_data={'etiqueta': False, 'familia_genero': False, '_dist': False,
+                                 'contenidos': ':,', 'popularidad_mediana': ':.1f', 'calificacion_promedio': ':.2f'},
+                     labels={'contenidos': 'Títulos', 'popularidad_mediana': 'Popularidad mediana',
+                             'calificacion_promedio': 'Calificación promedio'},
+                     size_max=38)
+    fig.update_traces(textposition='top center', textfont=dict(size=13, color=OSCURO),
                       marker=dict(line=dict(width=1, color='white')))
+    fig.for_each_trace(lambda t: t.update(textposition=pos_grandes.get(t.name, 'top center')))
     fig.add_vline(x=rend['popularidad_mediana'].median(), line_width=1.5, line_dash="dot", line_color=GRIS)
     fig.add_hline(y=rend['calificacion_promedio'].median(), line_width=1.5, line_dash="dot", line_color=GRIS)
     fig.update_layout(template='plotly_white', showlegend=False, margin=dict(l=45, r=35, t=20, b=40),
@@ -1490,13 +1570,13 @@ def update_oportunidad_comercial(search, temporada):
 
     fig.update_layout(
         template='plotly_white',
-        legend=dict(orientation='h', y=-0.22, x=0.5, xanchor='center', title="", font=dict(size=10)),
-        margin=dict(l=45, r=25, t=20, b=80),
+        legend=dict(orientation='h', y=-0.2, x=0.5, xanchor='center', title="", font=dict(size=13)),
+        margin=dict(l=45, r=25, t=20, b=110),
         xaxis_title="Presupuesto (USD, escala log)",
         yaxis_title="Recaudación (USD, escala log)",
     )
 
-    tabla_data = df.nlargest(10, 'roi').to_dict('records') if total else []
+    tabla_data = df.nlargest(30, 'roi').to_dict('records') if total else []
     return fig, conteo_texto, tabla_data
 
 
