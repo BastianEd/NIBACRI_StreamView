@@ -19,8 +19,7 @@ ep3_streamview/
 ├── src/
 │   ├── etl_marketing.py     ETL: genera las tablas derivadas del dashboard
 ├── dashboard/
-│   ├── app.py               Dashboard (ejecución recomendada)
-│   └── dashboard_Final.ipynb  Versión notebook (ETL + dashboard)
+│   ├── app.py               Dashboard
 ├── images/                  Figuras exportadas por el EDA (images/marketing/)
 └── docs/                    Informe ejecutivo (PDF) y resumen ejecutivo
 ```
