@@ -487,6 +487,14 @@ small, .small { font-size: .80rem !important; }
     overflow: hidden;
 }
 
+/* Tabla que rellena todo el alto disponible del panel (scroll interno) */
+.tabla-fill > div, .tabla-fill .dash-spreadsheet-container, .tabla-fill .dash-spreadsheet-inner {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+}
+.tabla-fill .dash-spreadsheet-container .dash-spreadsheet-inner table { margin: 0; }
+
 /* Hallazgos y recomendaciones: cuadrículas que reparten el alto disponible por igual */
 .cards-grid {
     flex: 1;
@@ -1037,16 +1045,17 @@ view_matriz = html.Div([
                         {"name": "Cuadrante", "id": "cuadrante_corto"},
                     ],
                     data=[],
-                    page_size=8,
+                    page_action='none',          # sin paginación: la tabla rellena todo el alto y hace scroll interno
+                    fixed_rows={'headers': True},  # cabecera + filtros fijos al hacer scroll
                     sort_action='native',
                     filter_action='native',
-                    style_table={'overflowX': 'auto', 'overflowY': 'auto'},
+                    style_table={'height': 'calc(100vh - 290px)', 'maxHeight': 'calc(100vh - 290px)', 'overflowX': 'auto', 'overflowY': 'auto'},
                     style_header={'backgroundColor': OSCURO, 'color': 'white', 'fontWeight': 'bold', 'fontSize': '12px', 'padding': '7px'},
                     style_cell={'textAlign': 'left', 'padding': '6px 8px', 'fontSize': '12.5px',
                                 'maxWidth': '170px', 'overflow': 'hidden', 'textOverflow': 'ellipsis'},
                     style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': GRIS_CLARO}]
                 ),
-                className="panel-box-body justify-content-between"
+                className="panel-box-body tabla-fill"
             )
         ], className="panel-box"), width=12, lg=6, className="h-100"),
     ], className="g-3 horizontal-content-row")
