@@ -150,6 +150,7 @@ def figura_vacia(titulo):
 # 2. INICIALIZACIÓN E INTERFAZ
 # -----------------------------------------------------------------------------
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY, dbc.icons.FONT_AWESOME])
+server = app.server  # necesario para desplegar con gunicorn (Render)
 ESTILOS = r"""
 <style>
 body{font-size:16px; background:#F1F4F9}
@@ -729,4 +730,4 @@ def update_oportunidad_comercial(search, temporada):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8050)
+    app.run(debug=False, port=8050)
