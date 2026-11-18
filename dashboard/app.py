@@ -7,8 +7,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
 
-# Texto más grande y legible en todos los gráficos
-pio.templates['plotly_white'].layout.font.size = 15
 
 """
 StreamView Analytics - Dashboard estratégico (Gerencia de Marketing).
@@ -26,6 +24,23 @@ MORADO = '#7C3AED'
 GRIS = '#6B7280'
 OSCURO = '#111827'
 GRIS_CLARO = '#F8F9FA'
+
+# Tema único para todos los gráficos (tipografía, rejilla suave, paleta corporativa)
+_tpl = pio.templates['plotly_white'].layout
+_tpl.font.family = "Lato, 'Segoe UI', Arial, sans-serif"
+_tpl.font.size = 15
+_tpl.font.color = '#1F2937'
+_tpl.title.font.size = 19
+_tpl.title.font.color = OSCURO
+_tpl.title.x = 0.01
+_tpl.xaxis.gridcolor = '#EEF1F5'
+_tpl.yaxis.gridcolor = '#EEF1F5'
+_tpl.xaxis.linecolor = '#D1D5DB'
+_tpl.yaxis.linecolor = '#D1D5DB'
+_tpl.hoverlabel.bgcolor = OSCURO
+_tpl.hoverlabel.font.color = 'white'
+_tpl.hoverlabel.font.size = 14
+_tpl.colorway = [AZUL, ROJO, VERDE, AMBAR, MORADO, '#0891B2', '#DB2777', '#65A30D', GRIS, '#EA580C']
 
 BASE = Path(__file__).resolve().parent.parent / 'data' / 'processed'
 _REQUERIDOS = ['top_candidatos_campania.csv', 'catalogo_marketing_score.csv', 'evolucion_incorporacion.csv',
@@ -134,46 +149,99 @@ def figura_vacia(titulo):
 # -----------------------------------------------------------------------------
 # 2. INICIALIZACIÓN E INTERFAZ
 # -----------------------------------------------------------------------------
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY, dbc.icons.BOOTSTRAP])
-app.index_string = app.index_string.replace(
-    '</head>',
-    '<style>body{font-size:16px} .fs-7{font-size:1rem!important} .fs-8{font-size:.95rem!important} '
-    'small,.small{font-size:.95rem!important} .Select-value-label,.Select-option{font-size:15px!important}</style></head>')
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY, dbc.icons.FONT_AWESOME])
+ESTILOS = r"""
+<style>
+body{font-size:16px; background:#F1F4F9}
+.fs-7{font-size:1rem!important} .fs-8{font-size:.95rem!important}
+small,.small{font-size:.95rem!important}
+.Select-value-label,.Select-option{font-size:15px!important}
+
+/* Encabezado */
+.app-header{background:linear-gradient(120deg,#0B1220 0%,#17213A 60%,#2B1219 100%);
+            border-bottom:3px solid #E50914}
+.app-header .brand-icon{width:54px;height:54px;border-radius:14px;background:rgba(229,9,20,.15);
+            border:1px solid rgba(229,9,20,.45);display:flex;align-items:center;justify-content:center;
+            color:#FF4B55;font-size:1.6rem}
+
+/* Tarjetas */
+.card{border-radius:14px!important}
+.kpi-card{border-left:5px solid var(--c)!important; transition:transform .18s ease, box-shadow .18s ease}
+.kpi-card:hover{transform:translateY(-3px); box-shadow:0 10px 24px rgba(17,24,39,.10)!important}
+.kpi-icon{width:58px;height:58px;border-radius:16px;display:flex;align-items:center;
+          justify-content:center;font-size:1.55rem;color:var(--c);background:var(--bg)}
+.kpi-label{letter-spacing:.04em;text-transform:uppercase;font-size:.78rem!important;color:#6B7280}
+.hallazgo-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;
+               justify-content:center;font-size:1.15rem;color:var(--c);background:var(--bg)}
+.section-title{color:#111827}
+.section-title i{color:#E50914}
+
+/* Pestañas */
+.nav-tabs{border-bottom:2px solid #E3E8EF; margin-bottom:1rem}
+.nav-tabs .nav-link{color:#4B5563;font-weight:700;border:none;border-bottom:3px solid transparent;
+                    margin-bottom:-2px;padding:.85rem 1.2rem;background:transparent;border-radius:0}
+.nav-tabs .nav-link:hover{color:#E50914;border-bottom-color:#F4A6AB}
+.nav-tabs .nav-link.active{color:#E50914;background:transparent;border-bottom:3px solid #E50914}
+.nav-tabs .nav-link::before{font-family:'Font Awesome 6 Free';font-weight:900;margin-right:.55rem}
+.tab-matriz::before{content:'\f140'}
+.tab-hallazgos::before{content:'\f0eb'}
+.tab-familias::before{content:'\f080'}
+.tab-geo::before{content:'\f57d'}
+.tab-comercial::before{content:'\f51e'}
+
+/* Botones y acordeones */
+.btn-danger{background:#E50914;border-color:#E50914}
+.btn-danger:hover{background:#B8070F;border-color:#B8070F}
+.btn-outline-secondary:hover{background:#111827;border-color:#111827}
+.accordion-button:not(.collapsed){color:#E50914;background:#FDF2F2;box-shadow:none}
+.list-group-item{border-color:#EEF1F5}
+</style>
+"""
+app.index_string = app.index_string.replace('</head>', ESTILOS + '</head>')
 
 header = dbc.Navbar(
     dbc.Container([
         dbc.Row([
-            dbc.Col(html.I(className="bi bi-play-btn-fill text-danger fs-1"), width="auto"),
+            dbc.Col(html.Div(html.I(className="fa-solid fa-circle-play"), className="brand-icon"), width="auto"),
             dbc.Col(html.Div([
-                html.H2("StreamView Analytics", className="mb-0 text-white fw-bold", style={'whiteSpace': 'nowrap'}),
-                html.Div("Dashboard Estratégico — Gerencia de Marketing", className="text-light fs-5", style={'whiteSpace': 'nowrap'}),
+                html.H2("StreamView Analytics", className="mb-0 text-white fw-bold", style={'whiteSpace': 'nowrap', 'letterSpacing': '.01em'}),
+                html.Div("Dashboard Estratégico — Gerencia de Marketing", className="fs-6", style={'whiteSpace': 'nowrap', 'color': '#AAB4C8'}),
             ], className="text-center")),
-            dbc.Col(html.I(className="bi bi-play-btn-fill fs-1", style={'visibility': 'hidden'}), width="auto"),  # equilibra el ícono para centrar el texto
+            dbc.Col(html.Div(className="brand-icon", style={'visibility': 'hidden'}), width="auto"),  # equilibra el ícono para centrar el texto
         ], align="center", className="g-0 w-100 flex-nowrap")
     ], fluid=True),
-    color=OSCURO, dark=True, className="mb-4 shadow-sm py-2"
+    color=OSCURO, dark=True, className="mb-4 shadow-sm py-3 app-header"
 )
 
-def make_kpi_card(title, value, subtitle, icon, color_class="text-primary"):
+def _tinte(hex_color, alpha=0.12):
+    h = hex_color.lstrip('#')
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return f'rgba({r},{g},{b},{alpha})'
+
+
+def make_kpi_card(title, value, subtitle, icon, color=AZUL):
     return dbc.Card(dbc.CardBody(
         dbc.Row([
-            dbc.Col([html.H6(title, className="card-subtitle text-muted mb-1 fs-7 fw-semibold"),
-                     html.H3(value, className="card-title fw-bold mb-0"),
+            dbc.Col([html.Div(title, className="kpi-label fw-bold mb-1"),
+                     html.H3(value, className="card-title fw-bold mb-0", style={'fontSize': '2rem', 'color': OSCURO}),
                      html.Small(subtitle, className="text-muted fs-8")], width=9),
-            dbc.Col(html.I(className=f"bi {icon} fs-1 {color_class}"), width=3, className="text-end d-flex align-items-center justify-content-center")
+            dbc.Col(html.Div(html.I(className=f"fa-solid {icon}"), className="kpi-icon"),
+                    width=3, className="d-flex align-items-center justify-content-end")
         ])
-    ), className="shadow-sm border-0 rounded-3 h-100")
+    ), className="shadow-sm border-0 h-100 kpi-card", style={'--c': color, '--bg': _tinte(color)})
 
 # KPIs dinámicos: se recalculan con los filtros globales (callback update_kpis)
 kpis = dbc.Row(id='kpi-row', className="mb-4 g-3")
 
 filtros_globales = dbc.Card(dbc.CardBody([
+    html.Div([html.I(className="fa-solid fa-sliders me-2", style={'color': ROJO}), "Filtros globales"],
+             className="fw-bold mb-2", style={'color': OSCURO}),
     dbc.Row([
         dbc.Col([html.Label("Tipo de contenido", className="fw-semibold fs-7 mb-1"),
                  dcc.Dropdown(id='filter-tipo', options=[{'label': 'Todos', 'value': 'TODOS'}] + [{'label': i, 'value': i} for i in sorted(cat_score['tipo_es'].dropna().unique())], value='TODOS', clearable=False)], width=12, md=5),
         dbc.Col([html.Label("Idioma original", className="fw-semibold fs-7 mb-1"),
                  dcc.Dropdown(id='filter-idioma', options=[{'label': 'Todos', 'value': 'TODOS'}] + [{'label': i, 'value': i} for i in idiomas_disp], value='TODOS', clearable=False)], width=12, md=5),
-        dbc.Col(dbc.Button("↺ Restablecer", id='btn-reset', color='secondary', outline=True, className="w-100"),
+        dbc.Col(dbc.Button([html.I(className="fa-solid fa-rotate-left me-2"), "Restablecer"], id='btn-reset', color='secondary', outline=True, className="w-100"),
                 width=12, md=2, className="d-flex align-items-end"),
     ], className="g-2"),
     dbc.Accordion(dbc.AccordionItem(
@@ -186,7 +254,7 @@ filtros_globales = dbc.Card(dbc.CardBody([
 ]), className="border-0 shadow-sm rounded-3 mb-3")
 
 tab_matriz = dbc.Card(dbc.CardBody([
-    html.H5("¿Qué promocionar? Matriz de contenidos", className="fw-bold mb-1"),
+    html.H5([html.I(className="fa-solid fa-bullseye me-2"), "¿Qué promocionar? Matriz de contenidos"], className="fw-bold mb-1 section-title"),
     html.P("Filtra y explora los cuadrantes para extraer títulos de pauta publicitaria.", className="text-muted mb-3 fs-7"),
     dbc.Row([
         dbc.Col([html.Label("Filtrar por Cuadrante:", className="fw-semibold fs-7 mb-1"),
@@ -205,7 +273,7 @@ tab_matriz = dbc.Card(dbc.CardBody([
     html.Hr(className="my-4"),
     dbc.Row([
         dbc.Col(html.H6("Tabla de Candidatos Destacados para Campañas", className="fw-bold mb-1"), width=12, md=8),
-        dbc.Col(dbc.Button("⬇ Exportar candidatos (CSV)", id='btn-export', color='danger', size='sm', className="float-md-end"), width=12, md=4),
+        dbc.Col(dbc.Button([html.I(className="fa-solid fa-file-arrow-down me-2"), "Exportar candidatos (CSV)"], id='btn-export', color='danger', size='sm', className="float-md-end"), width=12, md=4),
     ], className="align-items-center"),
     html.Div(id='tabla-count', className="text-muted fs-8 mb-2"),
     dash_table.DataTable(
@@ -228,7 +296,7 @@ tab_matriz = dbc.Card(dbc.CardBody([
 ]), className="border-0 shadow-sm rounded-3 mb-4")
 
 tab_familias = dbc.Card(dbc.CardBody([
-    html.H5("Rendimiento por Familias de Géneros", className="fw-bold mb-1"),
+    html.H5([html.I(className="fa-solid fa-chart-column me-2"), "Rendimiento por Familias de Géneros"], className="fw-bold mb-1 section-title"),
     html.P("Qué categorías tienen mayor potencial: volumen disponible vs. desempeño real de audiencia.", className="text-muted mb-3 fs-7"),
     dbc.Row([
         dbc.Col(dcc.Graph(id='bar-volumen-familias', style={'height': '450px'}), width=12, lg=6),
@@ -237,7 +305,7 @@ tab_familias = dbc.Card(dbc.CardBody([
 ]), className="border-0 shadow-sm rounded-3 mb-4")
 
 tab_geografia = dbc.Card(dbc.CardBody([
-    html.H5("Segmentación Geográfica, Idiomas y Ritmo de Incorporación", className="fw-bold mb-1"),
+    html.H5([html.I(className="fa-solid fa-earth-americas me-2"), "Segmentación Geográfica, Idiomas y Ritmo de Incorporación"], className="fw-bold mb-1 section-title"),
     html.P("Países e idiomas reaccionan a los filtros globales. El ritmo de incorporación solo responde al tipo de contenido.", className="text-muted mb-3 fs-7"),
     dbc.Row([
         dbc.Col(dcc.Graph(id='bar-top-paises', style={'height': '420px'}), width=12, lg=6),
@@ -254,20 +322,20 @@ tab_geografia = dbc.Card(dbc.CardBody([
 kpi_oportunidad = dbc.Row([
     dbc.Col(make_kpi_card(
         "Películas Analizadas", f"{len(oportunidades_tab):,}",
-        "Con presupuesto y recaudación reales", "bi-cash-coin", "text-success"
+        "Con presupuesto y recaudación reales", "fa-sack-dollar", VERDE
     ), width=12, md=4),
     dbc.Col(make_kpi_card(
         "ROI Mediano", f"{oportunidades_tab['roi'].median():.1f}x",
-        "Retorno sobre presupuesto invertido", "bi-graph-up-arrow", "text-primary"
+        "Retorno sobre presupuesto invertido", "fa-chart-line", AZUL
     ), width=12, md=4),
     dbc.Col(make_kpi_card(
         "Joyas Ocultas", f"{(oportunidades_tab['oportunidad_comercial'] == JOYA_OCULTA).sum():,}",
-        "Alta rentabilidad, poca exposición aún", "bi-gem", "text-purple"
+        "Alta rentabilidad, poca exposición aún", "fa-gem", MORADO
     ), width=12, md=4),
 ], className="mb-4 g-3")
 
 tab_comercial = dbc.Card(dbc.CardBody([
-    html.H5("Oportunidades Comerciales", className="fw-bold mb-1"),
+    html.H5([html.I(className="fa-solid fa-coins me-2"), "Oportunidades Comerciales"], className="fw-bold mb-1 section-title"),
     html.P("Cruce entre rentabilidad (presupuesto vs. recaudación) y popularidad, solo para "
            "películas con datos financieros reales en TMDB. Las 'joyas ocultas' son las mejores "
            "candidatas a impulsar con campaña: ya son rentables pero todavía tienen poco alcance.",
@@ -309,8 +377,9 @@ tab_comercial = dbc.Card(dbc.CardBody([
 ]), className="border-0 shadow-sm rounded-3 mb-4")
 
 # --- PESTAÑA: Hallazgos y recomendaciones (infografía / data storytelling) -------
-def hallazgo_card(numero, titulo, detalle, color):
+def hallazgo_card(numero, titulo, detalle, color, icono="fa-circle-info"):
     return dbc.Col(dbc.Card(dbc.CardBody([
+        html.Div(html.I(className=f"fa-solid {icono}"), className="hallazgo-icon mb-2", style={'--c': color, '--bg': _tinte(color)}),
         html.Div(numero, className="fw-bold", style={'fontSize': '2.4rem', 'color': color, 'lineHeight': '1.1'}),
         html.Div(titulo, className="fw-semibold mb-1"),
         html.Small(detalle, className="text-muted"),
@@ -327,17 +396,17 @@ _top_joya = oportunidades_tab[oportunidades_tab['oportunidad_comercial'] == JOYA
 _n_series_top = int((top_campanias['tipo_es'] == 'Serie').sum())
 
 tab_hallazgos = dbc.Card(dbc.CardBody([
-    html.H5("Hallazgos clave y recomendaciones", className="fw-bold mb-1"),
+    html.H5([html.I(className="fa-solid fa-lightbulb me-2"), "Hallazgos clave y recomendaciones"], className="fw-bold mb-1 section-title"),
     html.P("Resumen narrativo del análisis sobre el catálogo completo (sin filtros). Datos de catálogo: no incluyen reproducciones, clics ni conversión.", className="text-muted mb-3 fs-7"),
     dbc.Row([
         hallazgo_card(f"{_n_prom / _n_total:.0%}", "del catálogo es “Promocionar”",
-                      f"{_n_prom:,} de {_n_total:,} títulos combinan alto alcance y alta valoración: base de la campaña principal.", VERDE),
+                      f"{_n_prom:,} de {_n_total:,} títulos combinan alto alcance y alta valoración: base de la campaña principal.", VERDE, "fa-bullseye"),
         hallazgo_card(f"{_n_series_top}/{len(top_campanias)}", "candidatos del Top son series",
-                      f"Lideran {_top3}. Estrategia sugerida: series destacadas sin excluir películas de alto score.", AZUL),
+                      f"Lideran {_top3}. Estrategia sugerida: series destacadas sin excluir películas de alto score.", AZUL, "fa-tv"),
         hallazgo_card(' y '.join(_mejores), "mejor valoración entre familias grandes",
-                      "Volumen no es potencial: Drama y Comedia dominan el inventario, pero no la calidad percibida.", AMBAR),
+                      "Volumen no es potencial: Drama y Comedia dominan el inventario, pero no la calidad percibida.", AMBAR, "fa-masks-theater"),
         hallazgo_card(f"{_n_joyas}", "películas “joya oculta”",
-                      f"Alta rentabilidad y poca exposición (presupuesto ≥ USD 100.000). Mayor ROI: {_top_joya['title'].iloc[0] if len(_top_joya) else '—'}.", MORADO),
+                      f"Alta rentabilidad y poca exposición (presupuesto ≥ USD 100.000). Mayor ROI: {_top_joya['title'].iloc[0] if len(_top_joya) else '—'}.", MORADO, "fa-gem"),
     ], className="g-3 mb-4"),
     html.H6("Recomendaciones para Marketing", className="fw-bold mb-2"),
     dbc.ListGroup([
@@ -357,16 +426,16 @@ app.layout = html.Div([
         filtros_globales,
         kpis,
         dbc.Tabs([
-            dbc.Tab(tab_matriz, label="🎯 Qué promocionar", tab_id="tab-matriz"),
-            dbc.Tab(tab_hallazgos, label="📌 Hallazgos y recomendaciones", tab_id="tab-hallazgos"),
-            dbc.Tab(tab_familias, label="📊 Géneros", tab_id="tab-familias"),
-            dbc.Tab(tab_geografia, label="🌍 Geografía y Tiempos", tab_id="tab-geo"),
-            dbc.Tab(tab_comercial, label="💰 Oportunidades", tab_id="tab-comercial"),
+            dbc.Tab(tab_matriz, label="Qué promocionar", tab_id="tab-matriz", label_class_name="tab-matriz"),
+            dbc.Tab(tab_hallazgos, label="Hallazgos y recomendaciones", tab_id="tab-hallazgos", label_class_name="tab-hallazgos"),
+            dbc.Tab(tab_familias, label="Géneros", tab_id="tab-familias", label_class_name="tab-familias"),
+            dbc.Tab(tab_geografia, label="Geografía y Tiempos", tab_id="tab-geo", label_class_name="tab-geo"),
+            dbc.Tab(tab_comercial, label="Oportunidades", tab_id="tab-comercial", label_class_name="tab-comercial"),
         ], active_tab="tab-matriz"),
         dcc.Download(id='download-candidatos'),
         html.Footer(html.P("StreamView Analytics © 2026 — Gerencia de Marketing.", className="text-center text-muted fs-8 my-4"))
     ], fluid=True)
-], style={'backgroundColor': '#F4F6F9', 'minHeight': '100vh'})
+], style={'backgroundColor': '#F1F4F9', 'minHeight': '100vh'})
 
 # -----------------------------------------------------------------------------
 # 3. CALLBACKS
@@ -405,10 +474,10 @@ def update_kpis(tipo, idioma, familia):
     joyas = int(((oportunidades_tab['oportunidad_comercial'] == JOYA_OCULTA) & oportunidades_tab['uid'].isin(df['uid'])).sum())
     nd = '—'
     tarjetas = [
-        make_kpi_card("Catálogo Evaluado", f"{n:,}", "Con votos y valoración válidos", "bi-film", "text-primary"),
-        make_kpi_card("Candidatos Promoción", f"{n_prom:,}", f"{n_prom / n:.0%} del catálogo filtrado" if n else "Alto alcance y alta valoración", "bi-megaphone-fill", "text-danger"),
-        make_kpi_card("Score Promedio", f"{df['score_campania'].mean():.2f}" if n else nd, "Escala estandarizada (0-1)", "bi-star-fill", "text-warning"),
-        make_kpi_card("Joyas Ocultas", f"{joyas:,}", "Alta rentabilidad, poca exposición", "bi-gem", "text-purple"),
+        make_kpi_card("Catálogo Evaluado", f"{n:,}", "Con votos y valoración válidos", "fa-clapperboard", AZUL),
+        make_kpi_card("Candidatos Promoción", f"{n_prom:,}", f"{n_prom / n:.0%} del catálogo filtrado" if n else "Alto alcance y alta valoración", "fa-bullhorn", ROJO),
+        make_kpi_card("Score Promedio", f"{df['score_campania'].mean():.2f}" if n else nd, "Escala estandarizada (0-1)", "fa-ranking-star", AMBAR),
+        make_kpi_card("Joyas Ocultas", f"{joyas:,}", "Alta rentabilidad, poca exposición", "fa-gem", MORADO),
     ]
     return [dbc.Col(t, width=12, md=6, lg=3) for t in tarjetas]
 
